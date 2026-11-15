@@ -1,0 +1,163 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Registered buyer or agent/landlord account with unique email and phone",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "userCode": { "type": "string", "minLength": 5, "maxLength": 40, "pattern": "^[a-z0-9]+$" },
+        "fullName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "email": { "type": "string", "format": "email", "maxLength": 180 },
+        "phone": { "type": "string", "minLength": 7, "maxLength": 30 },
+        "state": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "role": { "type": "string", "enum": ["buyer", "agent"] },
+        "isBlocked": { "type": "boolean" },
+        "kycStatus": { "type": "string", "enum": ["unsubmitted", "pending", "approved", "rejected"] },
+        "agentUpgradeStatus": { "type": "string", "enum": ["none", "pending", "approved", "rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "userCode", "fullName", "email", "state", "role", "isBlocked", "kycStatus", "createdAt"]
+    },
+    "House": {
+      "title": "House",
+      "description": "Rental house listing published by a KYC-verified agent and approved by admin",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "agentUid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "agentName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "title": { "type": "string", "minLength": 3, "maxLength": 160 },
+        "houseNumber": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "streetName": { "type": "string", "minLength": 2, "maxLength": 160 },
+        "area": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "state": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "country": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "price": { "type": "number" },
+        "inspectionFee": { "type": "number" },
+        "houseType": {
+          "type": "string",
+          "enum": ["Single Room", "Self-Contain", "1 Bedroom", "2 Bedroom", "3 Bedroom", "Duplex", "Shop"]
+        },
+        "phone": { "type": "string", "minLength": 7, "maxLength": 30 },
+        "description": { "type": "string", "minLength": 10, "maxLength": 4000 },
+        "status": { "type": "string", "enum": ["Available", "SOLD OUT"] },
+        "approvalStatus": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "agentUid", "agentName", "title", "area", "state", "country", "price", "inspectionFee", "houseType", "phone", "description", "status", "approvalStatus", "createdAt"]
+    },
+    "KycRequest": {
+      "title": "KycRequest",
+      "description": "Agent/Landlord KYC verification submission",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "userUid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "idType": { "type": "string", "enum": ["NIN", "BVN"] },
+        "idNumber": { "type": "string", "minLength": 11, "maxLength": 11 },
+        "idCardUrl": { "type": "string", "maxLength": 500 },
+        "selfieUrl": { "type": "string", "minLength": 5, "maxLength": 500 },
+        "livenessVideoUrl": { "type": "string", "minLength": 5, "maxLength": 500 },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "rejectionReason": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userUid", "idType", "idNumber", "selfieUrl", "status", "createdAt"]
+    },
+    "AgentUpgradeRequest": {
+      "title": "AgentUpgradeRequest",
+      "description": "Buyer request to upgrade their account to Agent/Landlord pending admin approval",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "userUid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "note": { "type": "string", "maxLength": 500 },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "rejectionReason": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userUid", "status", "createdAt"]
+    },
+    "HomePropertyItem": {
+      "title": "HomePropertyItem",
+      "description": "Household property items listed for sale (TV, Gas Cooker, Fan, AC, Fridge, Furniture, etc.)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "sellerUid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "sellerName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "title": { "type": "string", "minLength": 2, "maxLength": 160 },
+        "category": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "condition": { "type": "string", "enum": ["Brand New", "Neatly Used", "Fairly Used"] },
+        "price": { "type": "number" },
+        "area": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "state": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "country": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "phone": { "type": "string", "minLength": 7, "maxLength": 30 },
+        "description": { "type": "string", "minLength": 5, "maxLength": 2000 },
+        "status": { "type": "string", "enum": ["Available", "SOLD"] },
+        "approvalStatus": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "sellerUid", "sellerName", "title", "category", "condition", "price", "area", "state", "country", "phone", "description", "status", "approvalStatus", "createdAt"]
+    },
+    "AdminNote": {
+      "title": "AdminNote",
+      "description": "Public announcement written by administrator for all users",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "message": { "type": "string", "minLength": 3, "maxLength": 1000 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "message", "createdAt"]
+    },
+    "UserReport": {
+      "title": "UserReport",
+      "description": "Report or warning filed against a user identified by their UID number",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "reportedUid": { "type": "string", "minLength": 5, "maxLength": 40 },
+        "reporterUid": { "type": "string", "maxLength": 128 },
+        "reason": { "type": "string", "minLength": 5, "maxLength": 1000 },
+        "status": { "type": "string", "enum": ["open", "warned", "resolved"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "reportedUid", "reason", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Private user account, state, unique UID number, block status, KYC status, and upgrade status"
+    },
+    "/houses/{houseId}": {
+      "schema": { "$ref": "#/entities/House" },
+      "description": "Rental house listings with inspection fee and admin approval status"
+    },
+    "/kyc_requests/{requestId}": {
+      "schema": { "$ref": "#/entities/KycRequest" },
+      "description": "KYC verification documents and approval state"
+    },
+    "/agent_upgrade_requests/{requestId}": {
+      "schema": { "$ref": "#/entities/AgentUpgradeRequest" },
+      "description": "Buyer-to-Agent upgrade requests awaiting admin review"
+    },
+    "/home_items/{itemId}": {
+      "schema": { "$ref": "#/entities/HomePropertyItem" },
+      "description": "Home property marketplace items for sale (TV, Gas, Fan, Furniture, etc.)"
+    },
+    "/admin_notes/{noteId}": {
+      "schema": { "$ref": "#/entities/AdminNote" },
+      "description": "Public admin announcements"
+    },
+    "/user_reports/{reportId}": {
+      "schema": { "$ref": "#/entities/UserReport" },
+      "description": "Warnings and reports filed by UID number for admin review"
+    }
+  }
+}

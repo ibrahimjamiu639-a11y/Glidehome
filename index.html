@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Glide Homes — Find House Fast, No Agent Wahala</title>
+    <meta name="description" content="Find your next house without stress. Real pictures, real landlords, verified KYC, and zero 419 agent wahala." />
+    <meta property="og:title" content="Glide Homes — Find House Fast, No Agent Wahala" />
+    <meta property="og:description" content="Find your next house without stress. Real pictures, real landlords, verified KYC, and zero 419 agent wahala." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet" />
+    <script>
+      (function () {
+        try {
+          var mode = localStorage.getItem('glide_theme_mode');
+          var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var resolved = mode === 'dark' ? 'dark' : mode === 'light' ? 'light' : (prefersDark ? 'dark' : 'light');
+          document.documentElement.classList.toggle('dark', resolved === 'dark');
+          document.documentElement.style.colorScheme = resolved;
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body class="bg-[#F5F7FA] dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

@@ -1,0 +1,254 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isVerifiedUser() && (
+        request.auth.token.email == 'ibrahimjamiuakofe08@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'userCode', 'fullName', 'email', 'state', 'role', 'isBlocked', 'kycStatus', 'createdAt'])
+        && data.keys().hasOnly(['uid', 'userCode', 'fullName', 'email', 'phone', 'state', 'role', 'isBlocked', 'kycStatus', 'agentUpgradeStatus', 'createdAt'])
+        && data.uid is string && data.uid == request.auth.uid && isValidId(data.uid)
+        && data.userCode is string && data.userCode.size() >= 5 && data.userCode.size() <= 40
+        && data.fullName is string && data.fullName.size() >= 2 && data.fullName.size() <= 120
+        && data.email is string && data.email.size() >= 5 && data.email.size() <= 180
+        && data.state is string && data.state.size() >= 2 && data.state.size() <= 80
+        && data.role in ['buyer', 'agent']
+        && data.isBlocked is bool
+        && data.kycStatus in ['unsubmitted', 'pending', 'approved', 'rejected']
+        && (!data.keys().hasAny(['agentUpgradeStatus']) || data.agentUpgradeStatus in ['none', 'pending', 'approved', 'rejected'])
+        && data.createdAt is timestamp;
+    }
+
+    function isValidHouse(data) {
+      return data.keys().hasAll(['id', 'agentUid', 'agentName', 'title', 'area', 'state', 'country', 'price', 'inspectionFee', 'houseType', 'phone', 'description', 'status', 'approvalStatus', 'images', 'createdAt'])
+        && data.keys().hasOnly(['id', 'agentUid', 'agentName', 'title', 'houseNumber', 'streetName', 'area', 'state', 'country', 'price', 'inspectionFee', 'houseType', 'phone', 'description', 'amenities', 'status', 'approvalStatus', 'rejectionReason', 'lat', 'lng', 'images', 'createdAt', 'updatedAt'])
+        && isValidId(data.id)
+        && isValidId(data.agentUid) && data.agentUid == request.auth.uid
+        && data.agentName is string && data.agentName.size() >= 2 && data.agentName.size() <= 120
+        && data.title is string && data.title.size() >= 3 && data.title.size() <= 160
+        && data.area is string && data.area.size() >= 2 && data.area.size() <= 120
+        && data.state is string && data.state.size() >= 2 && data.state.size() <= 80
+        && data.country is string && data.country.size() >= 2 && data.country.size() <= 80
+        && data.price is number && data.price > 0
+        && data.inspectionFee is number && data.inspectionFee >= 3000 && data.inspectionFee <= 5000
+        && data.houseType in ['Single Room', 'Self-Contain', '1 Bedroom', '2 Bedroom', '3 Bedroom', 'Duplex', 'Shop']
+        && data.phone is string && data.phone.size() >= 7 && data.phone.size() <= 30
+        && data.description is string && data.description.size() >= 10 && data.description.size() <= 4000
+        && data.status in ['Available', 'SOLD OUT']
+        && data.approvalStatus in ['pending', 'approved', 'rejected']
+        && data.images is list && data.images.size() >= 5 && data.images.size() <= 10 && data.images[0] is string
+        && data.createdAt is timestamp;
+    }
+
+    function isValidKycRequest(data) {
+      return data.keys().hasAll(['id', 'userUid', 'idType', 'idNumber', 'selfieUrl', 'status', 'createdAt'])
+        && data.keys().hasOnly(['id', 'userUid', 'idType', 'idNumber', 'idCardUrl', 'selfieUrl', 'livenessVideoUrl', 'status', 'rejectionReason', 'createdAt', 'updatedAt'])
+        && isValidId(data.id)
+        && isValidId(data.userUid) && data.userUid == request.auth.uid
+        && data.idType in ['NIN', 'BVN']
+        && data.idNumber is string && data.idNumber.size() == 11
+        && (!data.keys().hasAny(['idCardUrl']) || (data.idCardUrl is string && data.idCardUrl.size() <= 500))
+        && data.selfieUrl is string && data.selfieUrl.size() >= 5 && data.selfieUrl.size() <= 500
+        && (!data.keys().hasAny(['livenessVideoUrl']) || (data.livenessVideoUrl is string && data.livenessVideoUrl.size() >= 5 && data.livenessVideoUrl.size() <= 500))
+        && data.status in ['pending', 'approved', 'rejected']
+        && data.createdAt is timestamp;
+    }
+
+    function isValidUpgradeRequest(data) {
+      return data.keys().hasAll(['id', 'userUid', 'status', 'createdAt'])
+        && data.keys().hasOnly(['id', 'userUid', 'note', 'status', 'rejectionReason', 'createdAt', 'updatedAt'])
+        && isValidId(data.id)
+        && isValidId(data.userUid) && data.userUid == request.auth.uid
+        && (!data.keys().hasAny(['note']) || (data.note is string && data.note.size() <= 500))
+        && data.status in ['pending', 'approved', 'rejected']
+        && data.createdAt is timestamp;
+    }
+
+    function isValidHomeItem(data) {
+      return data.keys().hasAll(['id', 'sellerUid', 'sellerName', 'title', 'category', 'condition', 'price', 'area', 'state', 'country', 'phone', 'description', 'status', 'approvalStatus', 'images', 'createdAt'])
+        && data.keys().hasOnly(['id', 'sellerUid', 'sellerName', 'title', 'category', 'condition', 'price', 'area', 'state', 'country', 'phone', 'description', 'status', 'approvalStatus', 'rejectionReason', 'images', 'createdAt', 'updatedAt'])
+        && isValidId(data.id)
+        && isValidId(data.sellerUid) && data.sellerUid == request.auth.uid
+        && data.sellerName is string && data.sellerName.size() >= 2 && data.sellerName.size() <= 120
+        && data.title is string && data.title.size() >= 2 && data.title.size() <= 160
+        && data.category is string && data.category.size() >= 2 && data.category.size() <= 80
+        && data.condition in ['Brand New', 'Neatly Used', 'Fairly Used']
+        && data.price is number && data.price > 0
+        && data.area is string && data.area.size() >= 2 && data.area.size() <= 120
+        && data.state is string && data.state.size() >= 2 && data.state.size() <= 80
+        && data.country is string && data.country.size() >= 2 && data.country.size() <= 80
+        && data.phone is string && data.phone.size() >= 7 && data.phone.size() <= 30
+        && data.description is string && data.description.size() >= 5 && data.description.size() <= 2000
+        && data.status in ['Available', 'SOLD']
+        && data.approvalStatus in ['pending', 'approved', 'rejected']
+        && data.images is list && data.images.size() >= 1 && data.images.size() <= 6 && data.images[0] is string
+        && data.createdAt is timestamp;
+    }
+
+    function isValidAdminNote(data) {
+      return data.keys().hasAll(['id', 'message', 'createdAt'])
+        && data.keys().hasOnly(['id', 'message', 'createdAt'])
+        && isValidId(data.id)
+        && data.message is string && data.message.size() >= 3 && data.message.size() <= 1000
+        && data.createdAt is timestamp;
+    }
+
+    function isValidUserReport(data) {
+      return data.keys().hasAll(['id', 'reportedUid', 'reason', 'status', 'createdAt'])
+        && data.keys().hasOnly(['id', 'reportedUid', 'reporterUid', 'reason', 'status', 'adminActionNote', 'createdAt', 'updatedAt'])
+        && isValidId(data.id)
+        && data.reportedUid is string && data.reportedUid.size() >= 5 && data.reportedUid.size() <= 40
+        && (!data.keys().hasAny(['reporterUid']) || (data.reporterUid is string && data.reporterUid == request.auth.uid))
+        && data.reason is string && data.reason.size() >= 5 && data.reason.size() <= 1000
+        && data.status in ['open', 'warned', 'resolved']
+        && data.createdAt is timestamp;
+    }
+
+    match /test/connection {
+      allow get: if true;
+    }
+
+    match /admins/{adminId} {
+      allow get: if isVerifiedUser() && request.auth.uid == adminId;
+    }
+
+    match /admin_notes/{noteId} {
+      allow get: if isValidId(noteId);
+      allow list: if resource.data.message is string;
+      allow create, update: if isValidId(noteId) && isAdmin() && isValidAdminNote(incoming());
+      allow delete: if isValidId(noteId) && isAdmin();
+    }
+
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isSignedIn() && request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isValidId(userId) && isVerifiedUser() && request.auth.uid == userId
+        && isValidUser(incoming()) && incoming().kycStatus == 'unsubmitted'
+        && incoming().isBlocked == false
+        && incoming().createdAt == request.time;
+      allow update: if isValidId(userId) && isVerifiedUser() && (
+        isAdmin() ||
+        (request.auth.uid == userId && isValidUser(incoming())
+          && incoming().uid == existing().uid
+          && incoming().userCode == existing().userCode
+          && incoming().role == existing().role
+          && incoming().isBlocked == existing().isBlocked
+          && incoming().kycStatus == existing().kycStatus
+          && incoming().createdAt == existing().createdAt
+          && incoming().diff(existing()).affectedKeys().hasOnly(['fullName', 'phone', 'state']))
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /houses/{houseId} {
+      allow get: if isValidId(houseId) && (resource.data.approvalStatus == 'approved' || isAdmin() || (isSignedIn() && resource.data.agentUid == request.auth.uid));
+      allow list: if resource.data.approvalStatus == 'approved' || isAdmin();
+      allow create: if isValidId(houseId) && isVerifiedUser()
+        && isValidHouse(incoming())
+        && incoming().status == 'Available'
+        && incoming().approvalStatus == 'pending'
+        && incoming().createdAt == request.time
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.kycStatus == 'approved'
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isBlocked == false;
+      allow update: if isValidId(houseId) && isVerifiedUser() && (
+        isAdmin() ||
+        (existing().agentUid == request.auth.uid
+          && isValidHouse(incoming())
+          && incoming().agentUid == existing().agentUid
+          && incoming().approvalStatus == existing().approvalStatus
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && (
+            (existing().status != 'SOLD OUT' && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])) ||
+            incoming().diff(existing()).affectedKeys().hasOnly(['price', 'updatedAt'])
+          ))
+      );
+      allow delete: if isValidId(houseId) && (isAdmin() || (isVerifiedUser() && existing().agentUid == request.auth.uid));
+    }
+
+    match /kyc_requests/{requestId} {
+      allow get: if isValidId(requestId) && isVerifiedUser() && (existing().userUid == request.auth.uid || isAdmin());
+      allow list: if isVerifiedUser() && (resource.data.userUid == request.auth.uid || isAdmin());
+      allow create: if isValidId(requestId) && isVerifiedUser()
+        && isValidKycRequest(incoming())
+        && incoming().status == 'pending'
+        && incoming().createdAt == request.time;
+      allow update: if isValidId(requestId) && isAdmin() && isValidKycRequest(incoming())
+        && incoming().userUid == existing().userUid
+        && incoming().createdAt == existing().createdAt;
+      allow delete: if isValidId(requestId) && isAdmin();
+    }
+
+    match /agent_upgrade_requests/{requestId} {
+      allow get: if isValidId(requestId) && isVerifiedUser() && (existing().userUid == request.auth.uid || isAdmin());
+      allow list: if isVerifiedUser() && (resource.data.userUid == request.auth.uid || isAdmin());
+      allow create: if isValidId(requestId) && isVerifiedUser()
+        && isValidUpgradeRequest(incoming())
+        && incoming().status == 'pending'
+        && incoming().createdAt == request.time;
+      allow update: if isValidId(requestId) && isAdmin() && isValidUpgradeRequest(incoming())
+        && incoming().userUid == existing().userUid
+        && incoming().createdAt == existing().createdAt;
+      allow delete: if isValidId(requestId) && isAdmin();
+    }
+
+    match /home_items/{itemId} {
+      allow get: if isValidId(itemId) && (resource.data.approvalStatus == 'approved' || isAdmin() || (isSignedIn() && resource.data.sellerUid == request.auth.uid));
+      allow list: if resource.data.approvalStatus == 'approved' || isAdmin();
+      allow create: if isValidId(itemId) && isVerifiedUser()
+        && isValidHomeItem(incoming())
+        && incoming().status == 'Available'
+        && incoming().createdAt == request.time
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isBlocked == false;
+      allow update: if isValidId(itemId) && isVerifiedUser() && (
+        isAdmin() ||
+        (existing().sellerUid == request.auth.uid
+          && isValidHomeItem(incoming())
+          && incoming().sellerUid == existing().sellerUid
+          && incoming().approvalStatus == existing().approvalStatus
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'price', 'updatedAt']))
+      );
+      allow delete: if isValidId(itemId) && (isAdmin() || (isVerifiedUser() && existing().sellerUid == request.auth.uid));
+    }
+
+    match /user_reports/{reportId} {
+      allow get, list: if isAdmin();
+      allow create: if isValidId(reportId) && isVerifiedUser()
+        && isValidUserReport(incoming())
+        && incoming().status == 'open'
+        && incoming().createdAt == request.time;
+      allow update, delete: if isValidId(reportId) && isAdmin();
+    }
+  }
+}

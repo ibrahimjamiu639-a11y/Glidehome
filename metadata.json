@@ -1,0 +1,6 @@
+{
+  "name": "Glide Homes",
+  "description": "Find House Fast, No Agent Wahala — Verified house rentals across Nigeria and beyond with KYC-checked landlords, real photos, and anti-419 protection.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
